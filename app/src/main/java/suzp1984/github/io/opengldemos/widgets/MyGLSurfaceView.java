@@ -5,6 +5,7 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.os.SystemClock;
+import android.view.MotionEvent;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -18,6 +19,11 @@ import suzp1984.github.io.opengldemos.globject.Triangle;
 public class MyGLSurfaceView extends GLSurfaceView {
 
     private final MyGLRender mRender;
+
+    private final float TOUCH_SCALE_FACTOR = 180.0f / 3200;
+    private float mPreviousX;
+    private float mPreviousY;
+
     public MyGLSurfaceView(Context context) {
         super(context);
 
@@ -25,7 +31,33 @@ public class MyGLSurfaceView extends GLSurfaceView {
         mRender = new MyGLRender();
 
         setRenderer(mRender);
-        // setRenderMode(RENDERMODE_WHEN_DIRTY);
+        setRenderMode(RENDERMODE_WHEN_DIRTY);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent e) {
+        float x = e.getX();
+        float y = e.getY();
+
+        switch (e.getAction()) {
+            case MotionEvent.ACTION_MOVE:
+                float dx = x - mPreviousX;
+                float dy = y = mPreviousY;
+
+                if (y > getHeight() / 2) {
+                    dx = dx * -1;
+                }
+
+                if (x < getWidth() / 2) {
+                    dy = dy * -1;
+                }
+                mRender.setAngle(mRender.getAngle() + ((dx + dy) * TOUCH_SCALE_FACTOR));
+                requestRender();
+        }
+
+        mPreviousX = x;
+        mPreviousY = y;
+        return true;
     }
 
     public static class MyGLRender implements GLSurfaceView.Renderer {
@@ -38,6 +70,16 @@ public class MyGLSurfaceView extends GLSurfaceView {
         private final float[] mViewMatrix = new float[16];
 
         private float[] mRotationMatrix = new float[16];
+
+        public volatile float mAngle;
+
+        public float getAngle() {
+            return mAngle;
+        }
+
+        public void setAngle(float angle) {
+            mAngle = angle;
+        }
 
         @Override
         public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
@@ -69,10 +111,10 @@ public class MyGLSurfaceView extends GLSurfaceView {
             Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
 
             // create a rotation transformation for the triangle
-            long time = SystemClock.uptimeMillis() % 4000L;
-            float angle = 0.090f * ((int) time);
+//            long time = SystemClock.uptimeMillis() % 4000L;
+//            float angle = 0.090f * ((int) time);
 
-            Matrix.setRotateM(mRotationMatrix, 0, angle, 0, 0, -1.0f);
+            Matrix.setRotateM(mRotationMatrix, 0, mAngle, 0, 0, -1.0f);
 
             Matrix.multiplyMM(scratch, 0, mMVPMatrix, 0, mRotationMatrix, 0);
 
